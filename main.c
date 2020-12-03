@@ -657,7 +657,7 @@ int main(int argc, char *argv[])
     ImageInfo(ihandle, iSize, szInfo); // get image info
     p = (unsigned char *)malloc(0x10000); // allocate 64k to play with
     GetLeafName(argv[1], szLeaf);
-    printf("//\n// %s\n//\n", szLeaf); // comment header with filename
+    printf("//\n// %s\n// Data size = %d bytes\n//\n", szLeaf, iSize); // comment header with filename
     if (szInfo[0])
         printf("%s", szInfo);
     FixName(szLeaf); // remove unusable characters
