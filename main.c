@@ -661,6 +661,8 @@ int main(int argc, char *argv[])
     if (szInfo[0])
         printf("%s", szInfo);
     FixName(szLeaf); // remove unusable characters
+    printf("// for non-Arduino builds...\n");
+    printf("#ifndef PROGMEM\n#define PROGMEM\n#endif\n");
     printf("const uint8_t %s[] PROGMEM = {\n", szLeaf); // start of data array
     fseek(ihandle, 0, SEEK_SET);
     while (iSize)
