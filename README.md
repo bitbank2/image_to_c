@@ -19,7 +19,7 @@ Into this type of file:<br>
 PNG, JPEG, BMP, TIFF, GIF, PPM, TARGA, JEDMICS, CALS and PCX<br>
 
 <b>What happens for unrecognized files?</b><br>
-If the file type is not known, it will generate the same C output, but without additionl info.<br>
+If the file type is not known, it will generate the same C output, but without additional info.<br>
 
 If you find this code useful, please consider sending a donation or becoming a Github sponsor.
 
