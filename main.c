@@ -657,6 +657,7 @@ int main(int argc, char *argv[])
     ImageInfo(ihandle, iSize, szInfo); // get image info
     p = (unsigned char *)malloc(0x10000); // allocate 64k to play with
     GetLeafName(argv[1], szLeaf);
+    printf("// Created with image_to_c\n// https://github.com/bitbank2/image_to_c\n");
     printf("//\n// %s\n// Data size = %d bytes\n//\n", szLeaf, iSize); // comment header with filename
     if (szInfo[0])
         printf("%s", szInfo);
