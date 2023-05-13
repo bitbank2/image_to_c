@@ -254,8 +254,10 @@ int CountGIFFrames(unsigned char *cBuf, int iFileSize)
     return iNumFrames;
     
 } /* CountGIFFrames() */
-
-void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
+//
+// Returns the image data size
+//
+int ImageInfo(FILE *iHandle, int iFileSize, char *szInfo, int *iDataOff)
 {
     int i, j, k;
     int iBytes;
@@ -270,6 +272,7 @@ void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
     int iPhotoMetric;
     int iPlanar;
     int iCount;
+    int iDataSize = 0; // size of the compressed data
     unsigned char ucSubSample;
     BOOL bMotorola;
     char szOptions[256];
@@ -278,8 +281,8 @@ void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
     
     // Detect the file type by its header
     iBytes = fread(cBuf, 1, DEFAULT_READ_SIZE, iHandle);
-    if (iBytes != DEFAULT_READ_SIZE)
-        return; // too small
+    if (iBytes < 64)
+        return -1; // too small
     if (MOTOLONG(cBuf) == 0x89504e47) // PNG
         iFileType = FILETYPE_PNG;
     else if (cBuf[0] == 'B' && cBuf[1] == 'M') // BMP
@@ -322,7 +325,7 @@ void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
     
     if (iFileType == FILETYPE_UNKNOWN)
     {
-        return;
+        return -1;
     }
     szOptions[0] = '\0'; // info specific to each file type
     // Get info specific to each type of file
@@ -496,7 +499,7 @@ void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
                 }
             } // while
             if (iMarker != 0xffc0)
-                return; // error - invalid file?
+                return -1; // error - invalid file?
             else
             {
                 iBpp = cBuf[i+4]; // bits per sample
@@ -590,6 +593,12 @@ void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
                     if (iPhotoMetric > 6)
                         iPhotoMetric = 7; // unknown
                     break;
+                case 273: // strip offsets
+                    *iDataOff = TIFFVALUE(&cBuf[iOffset], bMotorola);
+                    break;
+                case 279: // strip byte counts
+                    iDataSize = TIFFVALUE(&cBuf[iOffset], bMotorola);
+                    break;
                 case 284: // planar/chunky
                     iPlanar = TIFFVALUE(&cBuf[iOffset], bMotorola);
                     if (iPlanar < 1 || iPlanar > 2) // unknown value
@@ -623,6 +632,7 @@ void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
     {
         strcat(szInfo, "//\n"); // simple end of comment
     }
+    return iDataSize;
 } /* ImageInfo() */
 //
 // Main program entry point
@@ -630,48 +640,77 @@ void ImageInfo(FILE *iHandle, int iFileSize, char *szInfo)
 int main(int argc, char *argv[])
 {
     int iSize, iData;
+    int bStrip = 0;
     unsigned char *p;
+    int iStart = 1; // starting parameter for input name
+    int iDataOff, iDataSize;
     char szLeaf[256];
     char szInfo[256];
     
-    if (argc != 2)
+    if (argc != 2 && argc != 3)
     {
         printf("image_to_c Copyright (c) 2020 BitBank Software, Inc.\n");
         printf("Written by Larry Bank\n\n");
-        printf("Usage: image_to_c <filename>\n");
+        printf("Usage: image_to_c <option> <filename>\n");
         printf("output is written to stdout\n");
         printf("example:\n\n");
         printf("image_to_c ./test.jpg > test.h\n");
+        printf("image_to_c --strip ./test.tif > test.h\n");
+        printf("--strip = remove all metadata and just save the compressed image\n");
+        printf("This option is only available for TIFF files (for now)\n");
         return 0; // no filename passed
     }
-    ihandle = fopen(argv[1],"rb"); // open input file
+    if (strcmp(argv[1], "--strip") == 0) {
+       iStart++;
+       bStrip = 1;
+    }
+    ihandle = fopen(argv[iStart],"rb"); // open input file
     if (ihandle == NULL)
     {
-        fprintf(stderr, "Unable to open file: %s\n", argv[1]);
+        fprintf(stderr, "Unable to open file: %s\n", argv[iStart]);
         return -1; // bad filename passed
     }
     
     fseek(ihandle, 0L, SEEK_END); // get the file size
     iSize = (int)ftell(ihandle);
     fseek(ihandle, 0, SEEK_SET);
-    ImageInfo(ihandle, iSize, szInfo); // get image info
+    iDataSize = ImageInfo(ihandle, iSize, szInfo, &iDataOff); // get image info
     p = (unsigned char *)malloc(0x10000); // allocate 64k to play with
-    GetLeafName(argv[1], szLeaf);
+    GetLeafName(argv[iStart], szLeaf);
     printf("// Created with image_to_c\n// https://github.com/bitbank2/image_to_c\n");
-    printf("//\n// %s\n// Data size = %d bytes\n//\n", szLeaf, iSize); // comment header with filename
+    if (bStrip) {
+       iStart = iDataOff;
+       printf("//\n// This hex data is only the compressed image; the header + metadata has been removed\n");
+       printf("// %s\n// File size = %d bytes, this data = %d bytes\n//\n", szLeaf, iSize, iDataSize); 
+    } else {
+       printf("//\n// %s\n// Data size = %d bytes\n//\n", szLeaf, iSize); // comment header with filename
+    }
     if (szInfo[0])
         printf("%s", szInfo);
     FixName(szLeaf); // remove unusable characters
     printf("// for non-Arduino builds...\n");
     printf("#ifndef PROGMEM\n#define PROGMEM\n#endif\n");
     printf("const uint8_t %s[] PROGMEM = {\n", szLeaf); // start of data array
-    fseek(ihandle, 0, SEEK_SET);
-    while (iSize)
-    {
-        iData = fread(p, 1, 0x10000, ihandle); // try to read 64k
-        MakeC(p, iData, iSize == iData); // create the output data
-        iSize -= iData;
-    }
+    if (bStrip) {
+       int iLen;
+       fseek(ihandle, iDataOff, SEEK_SET);
+       while (iDataSize)
+       {
+           iLen = 0x10000;
+           if (iLen > iDataSize) iLen = iDataSize;
+           iData = fread(p, 1, iLen, ihandle); // try to read 64k
+           MakeC(p, iData, iDataSize == iData); // create the output data
+           iDataSize -= iData;
+       }
+    } else {
+       fseek(ihandle, 0, SEEK_SET);
+       while (iSize)
+       {
+           iData = fread(p, 1, 0x10000, ihandle); // try to read 64k
+           MakeC(p, iData, iSize == iData); // create the output data
+           iSize -= iData;
+       }
+    } // bStrip
     free(p);
     fclose(ihandle);
     printf("};\n"); // final closing brace
