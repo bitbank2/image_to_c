@@ -409,6 +409,8 @@ int ImageInfo(FILE *iHandle, int iFileSize, char *szInfo, int *iDataOff)
                 iHeight = 65536 - iHeight;
             iBpp = cBuf[28]; /* Number of bits per plane */
             iBpp *= cBuf[26]; /* Number of planes */
+            *iDataOff = cBuf[10]; // OffBits
+            iDataSize = iFileSize - *iDataOff;
             if (cBuf[30] && (iBpp == 4 || iBpp == 8)) // if biCompression is non-zero (2=4bit rle, 1=8bit rle,4=24bit rle)
                 iCompression = COMPTYPE_RLE; // windows run-length
             break;
@@ -657,7 +659,7 @@ int main(int argc, char *argv[])
         printf("image_to_c ./test.jpg > test.h\n");
         printf("image_to_c --strip ./test.tif > test.h\n");
         printf("--strip = remove all metadata and just save the compressed image\n");
-        printf("This option is only available for TIFF files (for now)\n");
+        printf("This option is only available for TIFF & BMP files (for now)\n");
         return 0; // no filename passed
     }
     if (strcmp(argv[1], "--strip") == 0) {
@@ -680,7 +682,7 @@ int main(int argc, char *argv[])
     printf("// Created with image_to_c\n// https://github.com/bitbank2/image_to_c\n");
     if (bStrip) {
        iStart = iDataOff;
-       printf("//\n// This hex data is only the compressed image; the header + metadata has been removed\n");
+       printf("//\n// This hex data is only the image; the header + metadata has been removed\n");
        printf("// %s\n// File size = %d bytes, this data = %d bytes\n//\n", szLeaf, iSize, iDataSize); 
     } else {
        printf("//\n// %s\n// Data size = %d bytes\n//\n", szLeaf, iSize); // comment header with filename
