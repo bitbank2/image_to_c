@@ -21,6 +21,11 @@ PNG, JPEG, BMP, TIFF, GIF, PPM, TARGA, JEDMICS, CALS and PCX<br>
 <b>What happens for unrecognized files?</b><br>
 If the file type is not known, it will generate the same C output, but without additional info.<br>
 
+<b>New Feature</b><br>
+I just added the ability to write only the image data and strip off the header/metadata. Use the --strip option on TIFF and BMP files.<br>
+Example: ./image_to_c --strip input.bmp > output.h<br>
+This will only write the pixel data (compressed or not) to the output file<br>
+
 If you find this code useful, please consider sending a donation or becoming a Github sponsor.
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=SR4F44J2UR8S4)
