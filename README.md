@@ -1,6 +1,7 @@
 image_to_c
 ----------
-
+Added a Python Based GUI for windows. Just run Image2cGUI.py.
+<img src="https://github.com/jobitjoseph/image_to_c/blob/3ee9865857c19e6548583b8c9cb687b0cdebe025/dist/Windows/GUI.png" width="" alt="alt_text" title="image_tooltip">
 A command line tool for turning binary image files into C source code. The output is an array of unsigned chars and is sent to stdout. Included are comments detailing the image type, size and other details.<br>
 <br>
 <b>Why did you write it?</b><br>
