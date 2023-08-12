@@ -680,11 +680,12 @@ int main(int argc, char *argv[])
     p = (unsigned char *)malloc(0x10000); // allocate 64k to play with
     GetLeafName(argv[iStart], szLeaf);
     printf("// Created with image_to_c\n// https://github.com/bitbank2/image_to_c\n");
-    if (bStrip) {
+    if (bStrip && iDataOff != iDataSize) {
        iStart = iDataOff;
        printf("//\n// This hex data is only the image; the header + metadata has been removed\n");
        printf("// %s\n// File size = %d bytes, this data = %d bytes\n//\n", szLeaf, iSize, iDataSize); 
     } else {
+       bStrip = 0; // disable stripping if not possible to use it
        printf("//\n// %s\n// Data size = %d bytes\n//\n", szLeaf, iSize); // comment header with filename
     }
     if (szInfo[0])
