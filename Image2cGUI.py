@@ -46,12 +46,19 @@ def hide_console_window():
     ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
 
 def select_input_file():
-    filepath = filedialog.askopenfilename(
-        title="Select Input Image",
-        filetypes=[
+    if platform.system() == "Linux":
+      supportedfiletypes = (
+            ("Supported files", ("*.png", "*.jpeg", "*.jpg", "*.bmp", "*.tiff", "*.tif", "*.gif", "*.ppm", "*.tga", "*.cgm", "*.cal", "*.pcx")),
+            ("All files", "*.*")
+          )
+    else:
+      supportedfiletypes = (
             ("Supported files", "*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.tif;*.gif;*.ppm;*.tga;*.cgm;*.cal;*.pcx"),
             ("All files", "*.*")
-        ]
+          )
+    filepath = filedialog.askopenfilename(
+        title="Select Input Image",
+        filetypes=supportedfiletypes,
     )
     if filepath:
         input_file_var.set(filepath)
@@ -66,7 +73,7 @@ def convert_image():
     # Check OS and set command accordingly
     if platform.system() == "Windows":
         command = ["./image_to_c64"] if os.environ["PROCESSOR_ARCHITECTURE"] == "AMD64" else ["./image_to_c32"]
-    elif platform.system() == "Darwin":  # Darwin indicates macOS
+    elif platform.system() == "Darwin" or platform.system() == "Linux" :  # Darwin indicates macOS
         command = ["./image_to_c"]
     else:
         messagebox.showerror("Error", "Unsupported Operating System!")
@@ -86,7 +93,10 @@ def convert_image():
 
 app = tk.Tk()
 app.title("Image to C")
-app.iconbitmap('app_icon.ico')
+if platform.system() == "Linux":
+	app.iconphoto(False, tk.PhotoImage(file="./app_icon.png")) 
+else:
+	app.iconbitmap('app_icon.ico')
 
 input_file_var = tk.StringVar()
 
